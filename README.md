@@ -12,7 +12,7 @@ selenium为了用起来更方便，大家都喜欢二次封装。
 
 本项目只是将元素等待加入find方法中，没有什么特别的东西
 
-引用：
+引用：  
 from seleniumCore import getDriver, basePageByH5, basePageByWeb
 from seleniumCore.common.browser_by import BrowserBy
 from selenium.webdriver.common.by import By

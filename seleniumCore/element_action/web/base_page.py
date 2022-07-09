@@ -6,12 +6,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
-
+from seleniumTools.logger.log import Logger
 from seleniumCore.common.custom_error import *
-from tools.logger.log import Logger
 
 # 初始化log
-logger = Logger(logger="BasePageByWeb").get_log()  # 这是全局变量,在这个类中只是单纯引用，并没有重新赋值，所以在调用的时候就不需要再申明了
+logger = Logger(logger="BasePageByWeb")  # 这是全局变量,在这个类中只是单纯引用，并没有重新赋值，所以在调用的时候就不需要再申明了
 
 
 class BasePage(object):
@@ -21,34 +20,32 @@ class BasePage(object):
 
     def __init__(self):
         # 这里先定义一下，方便其他地方使用
-        self.driver = None
+        self.__driver = None
         self.__element = None
 
     def get_driver(self, webdriver):
         if webdriver is not None:
-            self.driver = webdriver
+            self.__driver = webdriver
         else:
             logger.error("浏览器驱动未初始化，请先初始化浏览器Driver")
 
     def get_url(self, url: str):
-        self.driver.get(url=url)
+        self.__driver.get(url=url)
 
-    def get_url_cookie(self, url: str, cookie: dict):
+    def get_url_and_set_cookie(self, url: str, cookie: dict):
         """
         :param url: https:www.baidu.com
         :param cookie: 随便传，传就意味着使用cookie。
         :return: 待cookie的url
         """
-
-        self.driver.get(url)  # 需要先打开1个url，不然不能加载cookie
+        self.__driver.get(url)  # 需要先打开1个url，不然不能加载cookie
 
         if cookie is not None:
-
             for value in cookie:
                 name = value['name']
                 value = value['value']
-                self.driver.add_cookie({'name': name, 'value': value})
-                self.driver.refresh()
+                self.__driver.add_cookie({'name': name, 'value': value})
+                self.__driver.refresh()
             logger.info("打开带cookie的URL")
         else:
             logger.info("没有cookie，直接打开url")
@@ -61,7 +58,7 @@ class BasePage(object):
         file_path = os.path.dirname(os.path.abspath('.'))
         rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))
         screen_name = file_path + rq + '.png'
-        self.driver.get_screenshot_as_file(screen_name)
+        self.__driver.get_screenshot_as_file(screen_name)
         logger.info("执行出错，进行截图!")
 
     def find_element_by(self, by: By, value: str):
@@ -72,18 +69,18 @@ class BasePage(object):
         """
         if self.wait_element(by=by, value=value):
             try:
-                self.__element = self.driver.find_element(by, value)
+                self.__element = self.__driver.find_element(by, value)
                 return self.__element
             except TimeoutError:
                 logger.error("元素 %s 未找到,请检查页面或者代码" % value)
                 self.get_windows_img()
                 return None
 
-    # 输入文本框
-    def send_text(self, by: By, value: str, text: str):
+    def input_str(self, by: By, value: str, text: str):
         """
+         输入文本框
         :param by: By.XPATH
-        :param value: 元素值
+        :param value: By对应的类型值
         :param text: input输入的文字
         :return: 输入元素
         """
@@ -96,7 +93,6 @@ class BasePage(object):
             logger.error(e.message)
             self.get_windows_img()
 
-    # 传输文件
     def send_file(self, by: By, value: str, file_path: str):
         """
         这是为了解决上传文件或者图片，方法参考：
@@ -104,7 +100,7 @@ class BasePage(object):
         感谢
         执行sendKeys的元素一定要符合input和 type="file"条件,否则就是你没找对上传文件的对象，会上传失败的。
         :param by: By.ID
-        :param value: 元素value
+        :param value: By对应的类型值
         :param file_path: 文件路径
         :return: upload img/file
         """
@@ -120,7 +116,7 @@ class BasePage(object):
         """
         清空文本框
         :param by:  By.ID
-        :param value: 元素value
+        :param value: By对应的类型值
         :return:
         """
         try:
@@ -136,7 +132,7 @@ class BasePage(object):
         """
         点击元素
         :param by: By.ID
-        :param value: 元素value
+        :param value: By对应的类型值
         :return:
         """
         if self.wait_element(by, wait_type='click', value=value) is True:
@@ -160,8 +156,12 @@ class BasePage(object):
         logger.info("休眠 %d 秒" % seconds)
 
     # 获取网页标题
-    def get_page_title(self):
-        title = self.driver.title
+    def get_page_title(self) -> str or None:
+        """
+        获取网页的标题
+        :return:
+        """
+        title = self.__driver.title
         if title is not None:
             logger.info("网页的标题(Title)是: %s" % title)
             return title
@@ -169,11 +169,11 @@ class BasePage(object):
             logger.info("网页的标题(Title)是空的，压根没写")
         return None
 
-    def get_text_by(self, by: By, value: str):
+    def get_text_by(self, by: By, value: str) -> str or None:
         """
         获取文本信息
         :param by: By.ID
-        :param value: 元素value
+        :param value: By对应的类型值
         :return:
         """
         element = self.find_element_by(by=by, value=value)
@@ -182,9 +182,9 @@ class BasePage(object):
             return el_text
         return None
 
-    def get_text_by_xpath(self, xpath: str):
+    def get_text_by_xpath(self, xpath: str) -> str or None:
         """
-
+        通过xpath来获取文字信息
         :param xpath: xpath语法
         :return: 通过xpath获取到的text信息
         """
@@ -192,18 +192,18 @@ class BasePage(object):
 
     def get_text_by_class_name(self, class_name_value: str):
         """
-
+        通过元素的class_name来获取文字信息
         :param class_name_value: class_name 内容
         :return:
         """
         return self.get_text_by(by=By.CLASS_NAME, value=class_name_value)
 
-    def select_text_index_by_index(self, by: By, value: str, index: int):
+    def select_text_by_index(self, by: By, value: str, index: int):
         """
         下拉框“select”标签选择, 提供 Text 和 index 两种选择方式
         :param index: 第几个元素，从1开始？
         :param by: 元素类型
-        :param value:
+        :param value: By对应的类型值
         :return:
         """
         el = self.find_element_by(by, value)
@@ -216,12 +216,12 @@ class BasePage(object):
         else:
             logger.error("未成功选择下拉框,下拉框不可点击")
 
-    def select_text_index_by_text(self, by: By, value: str, text: str):
+    def select_text_by_text(self, by: By, value: str, text: str):
         """
         下拉框“select”标签选择, 提供 Text 和 index 两种选择方式
         :param text: 需要选择的文案
         :param by: 元素类型
-        :param value:
+        :param value: By对应的类型值
         :return:
         """
         el = self.find_element_by(by, value)
@@ -235,14 +235,22 @@ class BasePage(object):
             logger.error("未成功选择下拉框,下拉框不可点击")
 
     def quit(self):
+        """
+        关闭浏览器
+        :return:
+        """
         try:
-            self.driver.quit()
+            self.__driver.quit()
             logger.info('关闭浏览器 \n')
         except NameError as e:
             logger.info("未成功关闭浏览器,错误原因是：%s' \n" % e)
 
     def get_cookie(self):
-        cookies = self.driver.get_cookies()
+        """
+        获取浏览器cookie,已json格式保存
+        :return:
+        """
+        cookies = self.__driver.get_cookies()
         cookie = json.dumps(cookies)
         logger.info('已获取登陆后的cookie: %s' % cookie)
         return cookie
@@ -257,9 +265,8 @@ class BasePage(object):
         :return:
         """
         global locator
-
         if '=>' not in selector:
-            return self.driver.find_element_by_id(selector)
+            return self.__driver.find_element_by_id(selector)
         selector_by = selector.split('=>')[0]
         selector_value = selector.split('=>')[1]
         if selector_by == 'id':
@@ -303,7 +310,7 @@ class BasePage(object):
         """
         显性等待
         :param by: By.ID
-        :param value: 元素值
+        :param value: By对应的类型值
         :param wait_time: 等待时间，默认10秒
         :param wait_type: 元素应该处于什么状态
         等待的类型 ：
@@ -316,24 +323,24 @@ class BasePage(object):
         """
         locator = (by, value)
         try:
-            if WebDriverWait(self.driver, wait_time, 2).until(ec.presence_of_element_located(locator)):
+            if WebDriverWait(self.__driver, wait_time, 2).until(ec.presence_of_element_located(locator)):
                 if wait_type == 'visibility':
                     try:
-                        WebDriverWait(self.driver, wait_time, 2).until(ec.visibility_of_element_located(locator))
+                        WebDriverWait(self.__driver, wait_time, 2).until(ec.visibility_of_element_located(locator))
                         return True
                     except VisibilityError(ele_value=value) as e:
                         logger.error(e.message)
                         return False
                 elif wait_type == 'invisibility':
                     try:
-                        WebDriverWait(self.driver, wait_time, 2).until(ec.invisibility_of_element_located(locator))
+                        WebDriverWait(self.__driver, wait_time, 2).until(ec.invisibility_of_element_located(locator))
                         return True
                     except InVisibilityError(ele_value=value) as e:
                         logger.error(e.message)
                         return False
                 elif wait_type == 'click':
                     try:
-                        WebDriverWait(self.driver, wait_time, 2).until(ec.element_to_be_clickable(locator))
+                        WebDriverWait(self.__driver, wait_time, 2).until(ec.element_to_be_clickable(locator))
                         return True
                     except ClickError(ele_value=value) as e:
                         logger.error(e.message)
@@ -343,7 +350,7 @@ class BasePage(object):
                     select标签是否已选中，一般用在下来列表
                     """
                     try:
-                        WebDriverWait(self.driver, wait_time, 1).until(ec.element_to_be_selected(locator))
+                        WebDriverWait(self.__driver, wait_time, 1).until(ec.element_to_be_selected(locator))
                         return True
                     except SelectError(ele_value=value) as e:
                         logger.error(e.message)
@@ -359,12 +366,12 @@ class BasePage(object):
         针对页面比较长有滚动条的情况，滑动滚动条到元素可见可操作的位置
         特殊处理
         :param by: By.ID
-        :param value: 元素value
+        :param value: By对应的类型值
         :return:
         """
         el = self.find_element_by(by=by, value=value)
         try:
-            self.driver.execute_script('arguments[0].scrollIntoView();', el)
+            self.__driver.execute_script('arguments[0].scrollIntoView();', el)
             logger.info('滑动滚动条到 %s 处' % el.text)
         except FindError as e:
             logger.error(e.message)
@@ -377,7 +384,7 @@ class BasePage(object):
         :return:
         """
         self.sleep(1)
-        self.driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+        self.__driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
         self.sleep(1)
         logger.info('滑动滚动条到页面的底部，“其实是Body的底部，如果是元素溢出的话就没卵用了，嘤嘤嘤”')
 
@@ -395,7 +402,7 @@ class BasePage(object):
         :return:
         """
         try:
-            self.driver.delete_all_cookies()
+            self.__driver.delete_all_cookies()
             logger.info('清除浏览器的所有cookie.打印一下清除cookie后的cookie : %s' % self.get_cookie())
         except ClearError as e:
             logger.info(e.message)
@@ -405,7 +412,7 @@ class BasePage(object):
         刷新
         :return:
         """
-        self.driver.refresh()
+        self.__driver.refresh()
         self.sleep(2)
         logger.info('刷新一下页面')
 
@@ -416,7 +423,7 @@ class BasePage(object):
         """
         i = 0
         while i < 4:
-            status = self.driver.execute_script('return document.readyState')
+            status = self.__driver.execute_script('return document.readyState')
             logger.info("获取网页加载状态：%s" % status)
             if status == 'complete':
                 logger.info("网页已经完成全部加载，可以进行下一步了")
@@ -427,3 +434,30 @@ class BasePage(object):
                 # return False
                 break
             i = i + 1
+
+    def get_attribute(self, elementobj, attributeName: str):
+        """
+        获取元素属性值
+        使用例子：
+        返回某个元素的class属性
+        result = self.driver.find_element_by(by=By.XPATH, value="//div[@id="name"]/a")
+        get_attribute(elementobj=result, attributeName='class')
+
+        参考：https://blog.csdn.net/xcntime/article/details/120315806
+
+        :param elementobj: 已经通过find方法获取到属性对象
+        :param attributeName: 这个元素要获取的属性
+        :return:
+        """
+        return elementobj.get_attribute(attributeName)
+
+    def close_alert_tips(self):
+        """
+        点击 alert 窗口
+        :return:
+        """
+        try:
+            if WebDriverWait(self.__driver, 10, 0.5).until(ec.alert_is_present()):
+                self.__driver.switch_to.alert.accept()
+        except Exception as e:
+            logger.info("检查操作结果弹窗并关闭此弹窗")

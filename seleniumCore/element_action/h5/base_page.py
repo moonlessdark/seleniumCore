@@ -5,11 +5,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
-from tools.logger.log import Logger
+from seleniumTools.logger.log import Logger
 from seleniumCore.common.custom_error import *
 
 # 初始化log
-logger = Logger(logger="BasePageByH5").get_log()  # 这是全局变量,在这个类中只是单纯的引用，并没有重新赋值，所以在调用的时候就不需要再申明了
+logger = Logger(logger="BasePageByH5")  # 这是全局变量,在这个类中只是单纯的引用，并没有重新赋值，所以在调用的时候就不需要再申明了
 
 
 class BasePage(object):
@@ -45,7 +45,6 @@ class BasePage(object):
     # 定位元素方法
     def find_element(self, selector: str):
         """
-        旧方法
         只要在页面上找到了这个元素,就会return。不管这个元素的状态是不是可见，是不是可点击。我会用另一个方法来判断。
          这个地方为什么是根据=>来切割字符串，请看页面里定位元素的方法
          submit_btn = "id=>su"
@@ -245,6 +244,12 @@ class BasePage(object):
             logger.error("未找到元素 %s" % selector_value)
             return None
 
+    def find_elements_by(self, by: By, value: str):
+        ele = self.find_element_by(by=by, value=value)
+        if ele is not None:
+            elements = self.driver.find_elements(by=by, value=value)
+            return elements
+
     def send_text(self, by: By, value: str, text: str):
         """
         文本框输入信息
@@ -255,6 +260,7 @@ class BasePage(object):
         """
         ele = self.find_element_by(by=by, value=value)
         if ele is not None and text is not None:
+            self.clear(by=by, value=value)
             ele.send_keys(text)
         else:
             logger.error("元素 %s 参数错误,请检查代码" % value)
@@ -313,7 +319,25 @@ class BasePage(object):
             logger.error("文案清除失败: %s" % e)
             self.get_windows_img()
 
-    def js_click(self, selector: str, index: int):
+    # 点击元素
+    def click(self, by: By, value: str):
+        """
+        点击元素
+        :param by: By.ID
+        :param value: By对应的类型值
+        :return:
+        """
+        if self.wait_element(by, wait_type='click', value=value) is True:
+            try:
+                self.driver.find_element(by, value).click()
+                logger.info("元素 %s click成功" % value)
+            except ClickError(ele_value=value) as e:
+                logger.error(e.message)
+                self.get_windows_img()
+        else:
+            logger.error('元素 %s 不可点击' % value)
+
+    def js_click(self, selector: str, index=None):
         """
         js点击
         :param selector: xpath=>[@name='id']
@@ -372,7 +396,7 @@ class BasePage(object):
         """
         return self.get_text_by(by=By.CLASS_NAME, value=class_name_value)
 
-    def select_text_index_by_index(self, by: By, value: str, index: int):
+    def select_text_by_index(self, by: By, value: str, index: int):
         """
         下拉框“select”标签选择, 提供 Text 和 index 两种选择方式
         :param index: 第几个元素，从1开始？
@@ -390,7 +414,7 @@ class BasePage(object):
         else:
             logger.error("未成功选择下拉框,下拉框不可点击")
 
-    def select_text_index_by_text(self, by: By, value: str, text: str):
+    def select_text_by_text(self, by: By, value: str, text: str):
         """
         下拉框“select”标签选择, 提供 Text 和 index 两种选择方式
         :param text: 需要选择的文案
@@ -611,3 +635,30 @@ class BasePage(object):
                 # return False
                 break
             i = i + 1
+
+    def get_attribute(self, elementobj, attributeName: str):
+        """
+        获取元素属性值
+        使用例子：
+        返回某个元素的class属性
+        result = self.driver.find_element_by(by=By.XPATH, value="//div[@id="name"]/a")
+        get_attribute(elementobj=result, attributeName='class')
+
+        参考：https://blog.csdn.net/xcntime/article/details/120315806
+
+        :param elementobj: 已经通过find方法获取到属性对象
+        :param attributeName: 这个元素要获取的属性
+        :return:
+        """
+        return elementobj.get_attribute(attributeName)
+
+    def close_alert_tips(self):
+        """
+        点击 alert 窗口
+        :return:
+        """
+        try:
+            if WebDriverWait(self.driver, 10, 0.5).until(ec.alert_is_present()):
+                self.driver.switch_to.alert.accept()
+        except Exception as e:
+            logger.info("检查操作结果弹窗并关闭此弹窗")

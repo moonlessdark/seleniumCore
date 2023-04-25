@@ -10,6 +10,7 @@ from seleniumCore.element_action.engine.h5_engine import WebDriverEngine as h5we
 from seleniumCore.element_action.engine.web_engine import WebDriverEngine as web
 from seleniumCore.element_action.h5.base_page import BasePage as pageh5
 from seleniumCore.element_action.web.base_page import BasePage as page
+import warnings
 
 
 class getDriver(object):
@@ -26,7 +27,7 @@ class getDriver(object):
         :param is_show_pic: 是否显示图片，暂时只支持 wechat模式
         :return:
         """
-
+        warnings.warn("该方法已经废弃，请使用 setDriver 类来调用", DeprecationWarning)
         if driver_type == 'h5':
             if browser_type == 'chrome':
                 driver_path = ChromeDriverManager().install() if driver_path is None else driver_path
@@ -67,7 +68,7 @@ class setDriver:
     def set_edge_driver(self, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True, driver_path: str = ""):
         """
         初始化Edge驱动对象
-        :param driver_type: web or h5
+        :param driver_type: web or h5 or wechat
         :param is_headless: 是否启用 无头模式，即不打开浏览器
         :param is_show_pic: 浏览器是否加载图片
         :param driver_path: 浏览器驱动地址
@@ -81,7 +82,7 @@ class setDriver:
                           driver_path: str = ""):
         """
         初始化Chrome驱动对象
-        :param driver_type: web or h5
+        :param driver_type: web or h5 or wechat
         :param is_headless: 是否启用 无头模式，即不打开浏览器
         :param is_show_pic: 浏览器是否加载图片
         :param driver_path: 浏览器驱动地址
@@ -113,8 +114,8 @@ class basePageByWeb(page):
     web页面
     """
     def __init__(self):
-        super(basePageByWeb, self).__init__()
-        self.get_driver(setDriver.web_browser_driver)
+        super(basePageByWeb, self).__init__(setDriver.web_browser_driver)
+        # self.get_driver()
 
 
 class basePageByH5(pageh5):
@@ -123,6 +124,7 @@ class basePageByH5(pageh5):
     """
     def __init__(self):
         super(basePageByH5, self).__init__()
+        warnings.warn("该方法已经废弃，请使用 basePageByWeb 类来调用", DeprecationWarning)
         self.get_driver(setDriver.web_browser_driver)
 
 

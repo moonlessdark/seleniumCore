@@ -26,7 +26,25 @@ class WebDriverEngine(object):
     .add_experimental_option("debuggerAddress", "127.0.0.1:9222") 调用原来的浏览器，不用再次登录即可重启
     .add_experimental_option('excludeSwitches', ['enable-automation']) 以开发者模式启动调试chrome，可以去掉提示受到自动软件控制
     .add_experimental_option('useAutomationExtension', False) 去掉提示以开发者模式调用
-    
+    .add_argument('–no-sandbox') # 沙盒模式运行
+    .add_argument('–disable-setuid-sandbox') # 禁用沙盒
+    .add_argument('–disable-dev-shm-usage') # 大量渲染时候写入/tmp而非/dev/shm
+    .add_argument('–user-data-dir={profile_path}'.format(profile_path)) # 用户数据存入指定文件
+    .add_argument('no-default-browser-check) # 不做浏览器默认检查
+    .add_argument("–disable-popup-blocking") # 允许弹窗
+    .add_argument("–disable-extensions") # 禁用扩展
+    .add_argument("–ignore-certificate-errors") # 忽略不信任证书
+    .add_argument("–no-first-run") # 初始化时为空白页面
+    .add_argument('–start-maximized') # 最大化启动
+    .add_argument('–disable-notifications') # 禁用通知警告
+    .add_argument('–enable-automation') # 通知(通知用户其浏览器正由自动化测试控制)
+    .add_argument('–disable-xss-auditor') # 禁止xss防护
+    .add_argument('–disable-web-security') # 关闭安全策略
+    .add_argument('–allow-running-insecure-content') # 允许运行不安全的内容
+    .add_argument('–disable-webgl') # 禁用webgl
+    .add_argument('–homedir={}') # 指定主目录存放位置
+    .add_argument('–disk-cache-dir={临时文件目录}') # 指定临时文件目录
+    .add_argument(‘disable-cache') # 禁用缓存
     设置prefs属性，屏蔽'保存密码'提示框
     prefs = {"":""}
     prefs["credentials_enable_service"] = False
@@ -63,6 +81,9 @@ class WebDriverEngine(object):
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
         edge_driver = webdriver.Edge(executable_path=driver_path, options=options)
+        if web_type == "wechat":
+            # 模拟手机端微信
+            edge_driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": self.user_ag, "platform": "iphone"})
         return edge_driver
 
     def __set_chrome_driver(self, driver_path, is_show_pic: bool, is_headless: bool, web_type: str) -> WebDriver:
@@ -79,7 +100,7 @@ class WebDriverEngine(object):
         options.add_experimental_option('useAutomationExtension', False)  # 去掉提示以开发者模式调用
         prefs = {"credentials_enable_service": False, "profile.password_manager_enabled": False}
         options.add_experimental_option("prefs", prefs)
-        if web_type == "h5":
+        if web_type in ("h5", 'wechat'):
             options.add_argument('user-agent=%s' % self.user_ag)
             options.add_experimental_option('mobileEmulation', self.mobile_emulation)
         if is_show_pic is False:
@@ -89,31 +110,36 @@ class WebDriverEngine(object):
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
         chrome_driver = webdriver.Chrome(executable_path=driver_path, chrome_options=options)
+        if web_type == "wechat":
+            # 模拟手机端微信
+            chrome_driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": self.user_ag, "platform": "iphone"})
         return chrome_driver
 
-    @staticmethod
-    def __set_firefox_driver_driver(driver_path, is_headless: bool, web_type: str) -> WebDriver:
+    def __set_firefox_driver_driver(self, driver_path, is_headless: bool, web_type: str) -> WebDriver:
         """
         设置浏览器驱动对象
-        :param web_type: web or h5
+        :param web_type: web or h5 or wechat
         :param driver_path: 浏览器驱动文件
         :param is_headless: 是否启用无头模式
         :return:
         """
         options = webdriver.FirefoxOptions()
-        if web_type == "h5":
+        if web_type in ("h5", "wechat"):
             options.add_argument('iPhone X')
         if is_headless:
             # 无头模式
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
         firefox_driver = webdriver.Firefox(executable_path=driver_path, options=options)
+        if web_type == "wechat":
+            # 模拟手机端微信
+            firefox_driver.command_executor('Network.setUserAgentOverride', {"userAgent": self.user_ag, "platform": "iphone"})
         return firefox_driver
 
     def get_fireFox(self, driver_path, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True):
         """
         打开edge浏览器
-        :param driver_type: web or h5
+        :param driver_type: web or h5 or wechat
         :param driver_path: 驱动路径
         :param is_show_pic: 是否显示图片
         :param is_headless: 是否启用 无头模式
@@ -129,7 +155,7 @@ class WebDriverEngine(object):
     def get_edge(self, driver_path, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True):
         """
         打开edge浏览器
-        :param driver_type: web or h5
+        :param driver_type: web or h5 or wechat
         :param driver_path: 驱动路径
         :param is_show_pic: 是否显示图片
         :param is_headless: 是否启用 无头模式
@@ -145,7 +171,7 @@ class WebDriverEngine(object):
     def get_chrome(self, driver_path, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True):
         """
         打开edge浏览器
-        :param driver_type: web or h5
+        :param driver_type: web or h5 or wechat
         :param driver_path: 驱动路径
         :param is_show_pic: 是否显示图片
         :param is_headless: 是否启用 无头模式

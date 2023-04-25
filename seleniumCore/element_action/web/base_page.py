@@ -20,14 +20,14 @@ class BasePage:
     定义一个获取页面的基础类，方便调用，万物基于此处。
     """
 
-    def __init__(self):
+    def __init__(self, browser_driver: WebDriver):
         # 这里先定义一下，方便其他地方使用
-        self.driver: WebDriver = None
+        self.driver: WebDriver = browser_driver
         self.__element: WebElement = None
         self.is_cap: bool = False  # 遇到错误时是否截图
 
-    @staticmethod
-    def printf_log() -> Logger:
+    @property
+    def printf_log(self) -> Logger:
         """
         打印日志
         :return:
@@ -48,11 +48,14 @@ class BasePage:
     def get_url(self, url: str):
         """
         打开浏览器
-        :param url:
+        :param url: 网站URL
         :return:
         """
-        self.driver.get(url=url)
-        logger.info("打开URL: %s" % url)
+        if self.driver is None:
+            logger.error("浏览器驱动未初始化，请先初始化浏览器Driver")
+        else:
+            self.driver.get(url=url)
+            logger.info("打开URL: %s" % url)
 
     def get_url_and_set_cookie(self, url: str, cookie: dict):
         """
@@ -60,7 +63,7 @@ class BasePage:
         :param cookie: 随便传，传就意味着使用cookie。
         :return: 待cookie的url
         """
-        self.driver.get(url)  # 需要先打开1个url，不然不能加载cookie
+        self.get_url(url)  # 需要先打开1个url，不然不能加载cookie
         if cookie is not None:
             for value in cookie:
                 name = value['name']
@@ -76,7 +79,7 @@ class BasePage:
         """
         在这里把file_path这个参数写死，直接保存到项目的一个文件夹../screenshots/下
         """
-        if self.is_cap is True:
+        if self.is_cap:
             file_path = os.path.dirname(os.path.abspath('.'))
             rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))
             screen_name = file_path + rq + '.png'
@@ -90,12 +93,15 @@ class BasePage:
         :param value: 元素value
         :return:
         """
-        if self.wait_element(by=by, value=value):
-            try:
-                return self.driver.find_element(by, value)
-            except Exception as e:
-                logger.error("元素 %s 处理失败,错误信息: %s" % (value, str(e)))
-                self.get_windows_img()
+        if self.driver is not None:
+            if self.wait_element(by=by, value=value):
+                try:
+                    return self.driver.find_element(by, value)
+                except Exception as e:
+                    logger.error("元素 %s 处理失败,错误信息: %s" % (value, str(e)))
+                    self.get_windows_img()
+        else:
+            logger.error("浏览器驱动未初始化，请先初始化浏览器Driver")
 
     def find_elements_by(self, by: By, value: str) -> list[WebElement]:
         """
@@ -105,11 +111,14 @@ class BasePage:
         :param value: 元素值
         :return:
         """
-        try:
-            return self.driver.find_elements(by, value)
-        except Exception as e:
-            logger.error("元素 %s 处理失败,错误信息: %s" % (value, str(e)))
-            self.get_windows_img()
+        if self.driver is not None:
+            try:
+                return self.driver.find_elements(by, value)
+            except Exception as e:
+                logger.error("元素 %s 处理失败,错误信息: %s" % (value, str(e)))
+                self.get_windows_img()
+        else:
+            logger.error("浏览器驱动未初始化，请先初始化浏览器Driver")
 
     def input_str(self, by: By, value: str, text: str):
         """
@@ -376,7 +385,7 @@ class BasePage:
                     return True
         return False
 
-    def slide_to_the_element(self, by: By, value: str):
+    def move_to_the_element(self, by: By, value: str):
         """
         针对页面比较长有滚动条的情况，滑动滚动条到元素可见可操作的位置
         特殊处理
@@ -392,7 +401,7 @@ class BasePage:
             logger.error("元素 %s 处理失败,错误信息: %s" % (value, str(e)))
             self.get_windows_img()
 
-    def slide_to_the_bottom(self):
+    def move_to_the_bottom(self):
         """
         滑动到body的底部
         bottom：底部的意思(来自百度翻译)
@@ -410,7 +419,7 @@ class BasePage:
         """
         try:
             self.driver.delete_all_cookies()
-            logger.info('清除浏览器的所有cookie.打印一下清除cookie后的cookie : %s' % self.get_cookie())
+            logger.info('清除浏览器的所有cookie.打印一下清除cookie后的cookie : %s' % self.get_cookie)
         except Exception as e:
             logger.error("cookie清除处理失败,错误信息: %s" % str(e))
 

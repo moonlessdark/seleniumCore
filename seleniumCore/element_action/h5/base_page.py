@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from seleniumTools.logger.log import Logger
 from seleniumCore.common.custom_error import *
+import warnings
 
 # 初始化log
 logger = Logger(logger="BasePageByH5")  # 这是全局变量,在这个类中只是单纯的引用，并没有重新赋值，所以在调用的时候就不需要再申明了
@@ -21,6 +22,14 @@ class BasePage(object):
         # 这里先定义一下，方便其他地方使用
         self.driver = None
         self.element = None
+
+    @staticmethod
+    def printf_log() -> Logger:
+        """
+        打印日志
+        :return:
+        """
+        return logger
 
     def get_driver(self, webdriver):
         if webdriver is not None:
@@ -55,6 +64,7 @@ class BasePage(object):
         :param selector: xpath=>//*[@id='u1']/a[7]
         :return: element
         """
+        warnings.warn("此方法已废弃，请勿使用", DeprecationWarning)
         if '=>' not in selector:
             return self.driver.find_element_by_id(selector)
         selector_by = selector.split('=>')[0]
@@ -296,13 +306,14 @@ class BasePage(object):
         :param file_path: 文件路径
         :return: upload img/file
         """
-        el = self.find_element_by(by=by, value=value)
         try:
-            el.send_keys(file_path)
-            logger.info("进行上传图片、文件操作")
-        except Exception as e:
-            logger.error("图片/文件直接上传失败 %s" % e)
+            file = self.find_element_by(by, value)
+        except SendKeyError(ele_value=value) as e:
+            logger.error(e.message)
             self.get_windows_img()
+        else:
+            file.send_keys(file_path)
+            logger.info("进行上传图片、文件操作")
 
     # 清除文本框
     def clear(self, by: By, value: str):
@@ -498,7 +509,7 @@ class BasePage(object):
 
         return locator, selector_by, selector_value
 
-    def wait_element(self, by: By, value: str, wait_type: str = 'visibility', wait_time: int = 10) -> bool:
+    def wait_element(self, by: By, value: str, wait_type: str = 'presence', wait_time: int = 10) -> bool:
         """
         显性等待
         :param by: By.ID
@@ -571,14 +582,15 @@ class BasePage(object):
         except Exception as e:
             logger.info('动态加载JQ语法失败，失败原因：%s' % e)
 
-    def slide_to_the_element(self, selector: str):
+    def slide_to_the_element(self, by: By, value: str):
         """
         针对页面比较长有滚动条的情况，滑动滚动条到元素可见可操作的位置
         特殊处理
-        :param selector: xpath=>//div[@name='id']
+        :param by: 元素类型
+        :param value: 元素值
         :return:
         """
-        el = self.find_element(selector)
+        el = self.find_element_by(by=by, value=value)
         try:
             self.driver.execute_script('arguments[0].scrollIntoView();', el)
             logger.info('滑动滚动条到 %s 处' % el.text)
@@ -661,4 +673,4 @@ class BasePage(object):
             if WebDriverWait(self.driver, 10, 0.5).until(ec.alert_is_present()):
                 self.driver.switch_to.alert.accept()
         except Exception as e:
-            logger.info("检查操作结果弹窗并关闭此弹窗")
+            logger.info("alert窗口未检测到或未成功关闭")

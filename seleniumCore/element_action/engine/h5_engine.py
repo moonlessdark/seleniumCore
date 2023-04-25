@@ -41,7 +41,7 @@ class WebDriverEngine(object):
         mobile_emulation = {'deviceName': 'iPhone 8'}
         options = webdriver.ChromeOptions()
         options.add_experimental_option('mobileEmulation', mobile_emulation)
-        mobile_driver = webdriver.Chrome(executable_path=driver_path, chrome_options=options)
+        mobile_driver = webdriver.Chrome(executable_path=driver_path, options=options)
         return mobile_driver
 
     def __set_firefox_driver(self, driver_path):
@@ -54,10 +54,20 @@ class WebDriverEngine(object):
         options.add_argument(mobile_emulation)
         return webdriver.Firefox(executable_path=driver_path)
 
+    def __set_edge_driver(self, driver_path: str):
+        """
+        edge浏览器驱动
+        :return:
+        """
+        mobile_emulation = {'deviceName': 'iPhone 8'}
+        options = webdriver.EdgeOptions()
+        options.add_experimental_option('mobileEmulation', mobile_emulation)
+        mobile_driver = webdriver.Edge(executable_path=driver_path, options=options)
+        return mobile_driver
+
     def get_chrome(self, driver_path: str):
         """
         打开谷歌浏览器
-        :param wechat_emulation: 是否模拟微信
         :param driver_path: 驱动路径
         :return: driver
         """
@@ -85,10 +95,22 @@ class WebDriverEngine(object):
         """
         打开火狐浏览器
         :param driver_path: 驱动路径
-        :return: dirver
+        :return: driver
         """
         if self.__class__.driver is not None:
             return self.__class__.driver
         else:
             self.__class__.driver = self.__set_firefox_driver(driver_path)
+            return self.__class__.driver
+
+    def get_edge(self, driver_path: str):
+        """
+        打开谷歌浏览器
+        :param driver_path: 驱动路径
+        :return: driver
+        """
+        if self.__class__.driver is not None:
+            return self.__class__.driver
+        else:
+            self.__class__.driver = self.__set_edge_driver(driver_path)
             return self.__class__.driver

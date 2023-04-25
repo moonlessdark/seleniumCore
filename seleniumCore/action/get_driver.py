@@ -1,5 +1,9 @@
 import unittest
 
+from selenium.webdriver.remote.webdriver import WebDriver
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from seleniumTools.HtmlReprot.HTMLTestReportCN import HTMLTestRunner
 from seleniumCore.common.browser_by import BrowserBy as browserBy
 from seleniumCore.element_action.engine.h5_engine import WebDriverEngine as h5web
@@ -11,8 +15,8 @@ from seleniumCore.element_action.web.base_page import BasePage as page
 class getDriver(object):
     driver = None
 
-    def __init__(self, driver_path: str, browser_type: browserBy, driver_type: str = 'web', is_headless: bool = False,
-                 is_show_pic: bool = True):
+    def __init__(self, browser_type: browserBy, driver_type: str = 'web', is_headless: bool = False,
+                 is_show_pic: bool = True, driver_path: str = None):
         """
         驱动初始化
         :param driver_path: 浏览器驱动路径
@@ -22,41 +26,104 @@ class getDriver(object):
         :param is_show_pic: 是否显示图片，暂时只支持 wechat模式
         :return:
         """
-        if driver_type == 'web':
+
+        if driver_type == 'h5':
             if browser_type == 'chrome':
-                self.__class__.driver = web().get_chrome(driver_path=driver_path)
+                driver_path = ChromeDriverManager().install() if driver_path is None else driver_path
+                self.__class__.driver = h5web().get_chrome(driver_path=driver_path)
             elif browser_type == 'firefox':
-                self.__class__.driver = web().get_firefox(driver_path=driver_path)
+                driver_path = GeckoDriverManager().install() if driver_path is None else driver_path
+                self.__class__.driver = h5web().get_firefox(driver_path=driver_path)
+            elif browser_type == 'edge':
+                driver_path = EdgeChromiumDriverManager().install() if driver_path is None else driver_path
+                self.__class__.driver = h5web().get_edge(driver_path=driver_path)
         elif driver_path == "wechat":
             # 是否模拟微信,暂时只支持chrome模拟IPhone微信浏览器
+            driver_path = ChromeDriverManager().install() if driver_path is None else driver_path
             self.__class__.driver = h5web().get_chrome_wechat_browser(driver_path=driver_path, is_headless=is_headless,
                                                                       is_show_pic=is_show_pic)
         else:
             if browser_type == 'chrome':
-                self.__class__.driver = h5web().get_chrome(driver_path=driver_path)
+                driver_path = ChromeDriverManager().install() if driver_path is None else driver_path
+                self.__class__.driver = web().get_chrome(driver_path=driver_path)
             elif browser_type == 'firefox':
-                self.__class__.driver = h5web().get_firefox(driver_path=driver_path)
+                driver_path = GeckoDriverManager().install() if driver_path is None else driver_path
+                self.__class__.driver = web().get_fireFox(driver_path=driver_path)
+            elif browser_type == 'edge':
+                driver_path = EdgeChromiumDriverManager().install() if driver_path is None else driver_path
+                self.__class__.driver = web().get_edge(driver_path=driver_path)
         self.__class__.driver.maximize_window()
+
+
+class setDriver:
+    """
+    设置浏览器驱动
+    """
+    web_browser_driver: WebDriver = None
+
+    def __init__(self):
+        self.web_engine = web()
+
+    def set_edge_driver(self, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True, driver_path: str = ""):
+        """
+        初始化Edge驱动对象
+        :param driver_type: web or h5
+        :param is_headless: 是否启用 无头模式，即不打开浏览器
+        :param is_show_pic: 浏览器是否加载图片
+        :param driver_path: 浏览器驱动地址
+        :return: WebDriver
+        """
+        driver_path = EdgeChromiumDriverManager().install() if driver_path == "" else driver_path
+        self.__class__.web_browser_driver = self.web_engine.get_edge(driver_path=driver_path, driver_type=driver_type, is_headless=is_headless, is_show_pic=is_show_pic)
+        return self.__class__.web_browser_driver
+
+    def set_chrome_driver(self, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True,
+                          driver_path: str = ""):
+        """
+        初始化Chrome驱动对象
+        :param driver_type: web or h5
+        :param is_headless: 是否启用 无头模式，即不打开浏览器
+        :param is_show_pic: 浏览器是否加载图片
+        :param driver_path: 浏览器驱动地址
+        :return: WebDriver
+        """
+        driver_path = ChromeDriverManager().install() if driver_path == "" else driver_path
+        self.__class__.web_browser_driver = self.web_engine.get_chrome(driver_path=driver_path, driver_type=driver_type,
+                                                                       is_headless=is_headless, is_show_pic=is_show_pic)
+        return self.__class__.web_browser_driver
+
+    def set_fireFox_driver(self, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True,
+                           driver_path: str = ""):
+        """
+        初始化Chrome驱动对象
+        :param driver_type: web or h5
+        :param is_headless: 是否启用 无头模式，即不打开浏览器
+        :param is_show_pic: 浏览器是否加载图片
+        :param driver_path: 浏览器驱动地址
+        :return: WebDriver
+        """
+        driver_path = GeckoDriverManager().install() if driver_path == "" else driver_path
+        self.__class__.web_browser_driver = self.web_engine.get_fireFox(driver_path=driver_path, driver_type=driver_type,
+                                                                        is_headless=is_headless)
+        return self.__class__.web_browser_driver
 
 
 class basePageByWeb(page):
     """
     web页面
     """
-
     def __init__(self):
         super(basePageByWeb, self).__init__()
-        self.get_driver(getDriver.driver)
+        self.get_driver(setDriver.web_browser_driver)
 
 
 class basePageByH5(pageh5):
     """
     h5页面
     """
-
     def __init__(self):
         super(basePageByH5, self).__init__()
-        self.get_driver(getDriver.driver)
+        self.get_driver(setDriver.web_browser_driver)
 
 
 class assertElement(unittest.TestCase):

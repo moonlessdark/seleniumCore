@@ -96,7 +96,7 @@ class setDriver:
     def set_fireFox_driver(self, driver_type: str = 'web', is_headless: bool = False, is_show_pic: bool = True,
                            driver_path: str = ""):
         """
-        初始化Chrome驱动对象
+        初始化Firefox驱动对象
         :param driver_type: web or h5
         :param is_headless: 是否启用 无头模式，即不打开浏览器
         :param is_show_pic: 浏览器是否加载图片
